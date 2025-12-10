@@ -1,0 +1,217 @@
+root@GW> show configuration routing-instances
+BLUE {
+    routing-options {
+        autonomous-system 5;
+        auto-export;
+    }
+    
+    protocols {
+        ospf {
+            area 0.0.0.0 {
+                interface ge-0/0/1.0;
+
+                interface ge-0/0/2.3;
+            }
+            export BGP-TO-OSPF;
+        }
+        bgp {
+            family inet {
+                unicast;
+            }
+            local-address 100.100.100.100;
+            export OSPF_TO_BGP;
+        }
+    }
+    interface ge-0/0/1.0;
+    interface ge-0/0/2.3;
+    instance-type vrf;
+    route-distinguisher 100:2;
+    vrf-import import-from-RED;
+    vrf-target target:100:2;
+}
+GREEN {
+    routing-options {
+        autonomous-system 5;
+        auto-export;
+    }
+    protocols {
+        ospf {
+            area 0.0.0.0 {
+                interface ge-0/0/0.0;
+                interface ge-0/0/2.2;
+            }
+            export BGP-TO-OSPF;
+        }
+        bgp {
+            family inet {
+                unicast;
+            }
+            local-address 100.100.100.100;
+            export OSPF_TO_BGP;
+        }
+    }
+    interface ge-0/0/0.0;
+    interface ge-0/0/2.2;
+    instance-type vrf;
+    route-distinguisher 100:0;
+    vrf-import import-from-RED;
+    vrf-target target:100:0;
+}
+RED {
+    routing-options {
+        autonomous-system 5;
+        auto-export;
+    }
+    protocols {
+        ospf {
+            area 0.0.0.0 {
+                interface ge-0/0/3.0;
+            }
+            export BGP-TO-OSPF;
+        }
+        bgp {
+            family inet {
+                unicast;
+            }
+            local-address 100.100.100.100;
+            export OSPF_TO_BGP;
+        }
+    }
+    interface ge-0/0/3.0;
+    instance-type vrf;
+    route-distinguisher 100:5;
+    vrf-import import-from-GREEN-BLUE;
+    vrf-target target:100:5;
+}
+
+root@GW> show configuration policy-options policy-statement OSPF_TO_BGP
+term 1 {
+    from protocol ospf;
+    then accept;
+}
+
+root@GW>
+
+root@GW> show configuration policy-options policy-statement BGP-TO-OSPF
+term 1 {
+    from protocol bgp;
+    then accept;
+}
+
+root@GW>
+
+root@GW> show route brief
+
+inet.0: 1 destinations, 1 routes (1 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+100.100.100.100/32 *[Direct/0] 08:25:18
+                    >  via lo0.0
+
+BLUE.inet.0: 13 destinations, 13 routes (13 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+1.1.1.1/32         *[OSPF/10] 00:16:10, metric 3
+                    >  to 172.16.23.2 via ge-0/0/2.3
+2.2.2.2/32         *[OSPF/10] 00:08:43, metric 1
+                    >  to 10.2.2.1 via ge-0/0/1.0
+3.3.3.3/32         *[OSPF/10] 00:16:16, metric 1
+                    >  to 10.3.3.1 via ge-0/0/3.0
+10.1.1.0/24        *[OSPF/10] 00:16:11, metric 3
+                    >  to 172.16.23.2 via ge-0/0/2.3
+10.2.2.0/24        *[Direct/0] 08:23:38
+                    >  via ge-0/0/1.0
+10.2.2.2/32        *[Local/0] 08:23:38
+                       Local via ge-0/0/1.0
+10.3.3.0/24        *[Direct/0] 00:44:46
+                    >  via ge-0/0/3.0
+10.3.3.3/32        *[Local/0] 00:44:46
+                       Local via ge-0/0/3.0
+10.10.10.10/32     *[OSPF/10] 00:16:11, metric 1
+                    >  to 172.16.23.2 via ge-0/0/2.3
+172.16.13.0/24     *[OSPF/10] 00:16:11, metric 2
+                    >  to 172.16.23.2 via ge-0/0/2.3
+172.16.23.0/24     *[Direct/0] 08:23:38
+                    >  via ge-0/0/2.3
+172.16.23.1/32     *[Local/0] 08:23:38
+                       Local via ge-0/0/2.3
+224.0.0.5/32       *[OSPF/10] 08:25:20, metric 1
+                       MultiRecv
+
+GREEN.inet.0: 13 destinations, 13 routes (13 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+1.1.1.1/32         *[OSPF/10] 00:16:10, metric 1
+                    >  to 10.1.1.1 via ge-0/0/0.0
+2.2.2.2/32         *[OSPF/10] 00:08:43, metric 3
+                    >  to 172.16.13.2 via ge-0/0/2.2
+3.3.3.3/32         *[OSPF/10] 00:16:16, metric 1
+                    >  to 10.3.3.1 via ge-0/0/3.0
+10.1.1.0/24        *[Direct/0] 08:23:38
+                    >  via ge-0/0/0.0
+10.1.1.2/32        *[Local/0] 08:23:38
+                       Local via ge-0/0/0.0
+10.2.2.0/24        *[OSPF/10] 00:16:11, metric 3
+                    >  to 172.16.13.2 via ge-0/0/2.2
+10.3.3.0/24        *[Direct/0] 00:44:46
+                    >  via ge-0/0/3.0
+10.3.3.3/32        *[Local/0] 00:44:46
+                       Local via ge-0/0/3.0
+10.10.10.10/32     *[OSPF/10] 00:16:14, metric 1
+                    >  to 172.16.13.2 via ge-0/0/2.2
+172.16.13.0/24     *[Direct/0] 08:23:38
+                    >  via ge-0/0/2.2
+172.16.13.1/32     *[Local/0] 08:23:38
+                       Local via ge-0/0/2.2
+172.16.23.0/24     *[OSPF/10] 00:16:14, metric 2
+                    >  to 172.16.13.2 via ge-0/0/2.2
+224.0.0.5/32       *[OSPF/10] 08:25:20, metric 1
+                       MultiRecv
+
+RED.inet.0: 15 destinations, 22 routes (15 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+1.1.1.1/32         *[OSPF/10] 00:16:10, metric 1
+                    >  to 10.1.1.1 via ge-0/0/0.0
+                    [OSPF/10] 00:16:10, metric 3
+                    >  to 172.16.23.2 via ge-0/0/2.3
+2.2.2.2/32         *[OSPF/10] 00:08:43, metric 1
+                    >  to 10.2.2.1 via ge-0/0/1.0
+                    [OSPF/10] 00:08:43, metric 3
+                    >  to 172.16.13.2 via ge-0/0/2.2
+3.3.3.3/32         *[OSPF/10] 00:16:16, metric 1
+                    >  to 10.3.3.1 via ge-0/0/3.0
+10.1.1.0/24        *[Direct/0] 01:10:41
+                    >  via ge-0/0/0.0
+                    [OSPF/10] 00:16:11, metric 3
+                    >  to 172.16.23.2 via ge-0/0/2.3
+10.1.1.2/32        *[Local/0] 01:10:41
+                       Local via ge-0/0/0.0
+10.2.2.0/24        *[Direct/0] 01:10:41
+                    >  via ge-0/0/1.0
+                    [OSPF/10] 00:16:11, metric 3
+                    >  to 172.16.13.2 via ge-0/0/2.2
+10.2.2.2/32        *[Local/0] 01:10:41
+                       Local via ge-0/0/1.0
+10.3.3.0/24        *[Direct/0] 08:23:38
+                    >  via ge-0/0/3.0
+10.3.3.3/32        *[Local/0] 08:23:38
+                       Local via ge-0/0/3.0
+10.10.10.10/32     *[OSPF/10] 00:16:14, metric 1
+                    >  to 172.16.13.2 via ge-0/0/2.2
+                    [OSPF/10] 00:16:11, metric 1
+                    >  to 172.16.23.2 via ge-0/0/2.3
+172.16.13.0/24     *[Direct/0] 01:10:41
+                    >  via ge-0/0/2.2
+                    [OSPF/10] 00:16:11, metric 2
+                    >  to 172.16.23.2 via ge-0/0/2.3
+172.16.13.1/32     *[Local/0] 01:10:41
+                       Local via ge-0/0/2.2
+172.16.23.0/24     *[Direct/0] 01:10:41
+                    >  via ge-0/0/2.3
+                    [OSPF/10] 00:16:14, metric 2
+                    >  to 172.16.13.2 via ge-0/0/2.2
+172.16.23.1/32     *[Local/0] 01:10:41
+                       Local via ge-0/0/2.3
+224.0.0.5/32       *[OSPF/10] 08:25:20, metric 1
+                       MultiRecv
