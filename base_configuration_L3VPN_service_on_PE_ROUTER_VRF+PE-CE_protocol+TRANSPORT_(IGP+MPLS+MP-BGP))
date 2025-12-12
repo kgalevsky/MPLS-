@@ -1,0 +1,151 @@
+root@R2> show configuration
+## Last commit: 2025-11-28 12:14:38 UTC by root
+version 20191212.201431_builder.r1074901;
+system {
+    host-name R2;
+    root-authentication {
+        encrypted-password "$6$UavhqM4l$NJncizrqaaTj1KrlNsR61JouPl1EAtCLWX0oJW9AmBLYHN9ldfhYO2prBIwMFp8x4rLqfDUW4wjnLXqP1xMoT0"; ## SECRET-DATA
+    }
+    services {
+        ssh;
+        web-management {
+            http {
+                interface fxp0.0;
+            }
+            https {
+                system-generated-certificate;
+                interface fxp0.0;
+            }
+        }
+    }
+    syslog {
+        user * {
+            any emergency;
+        }
+        file messages {
+            any any;
+            authorization info;
+        }
+        file interactive-commands {
+            interactive-commands any;
+        }
+    }
+    license {
+        autoupdate {
+            url https://ae1.juniper.net/junos/key_retrieval;
+        }
+    }
+}
+security {
+    forwarding-options {
+        family {
+            inet6 {
+                mode packet-based;
+            }
+            mpls {
+                mode packet-based;
+            }
+            iso {
+                mode packet-based;
+            }
+        }
+    }
+}
+interfaces {
+    ge-0/0/0 {
+        unit 0 {
+            family inet {
+                address 192.168.23.2/24;
+            }
+        }
+    }
+    ge-0/0/1 {
+        unit 0 {
+            family inet {
+                address 192.168.23.2/24;
+            }
+            family mpls;
+        }
+    }
+    ge-0/0/2 {
+        unit 0 {
+            family inet {
+                address 192.168.23.2/24;
+            }
+        }
+    }
+    fxp0 {
+        unit 0;
+    }
+    gre {
+        unit 0 {
+            tunnel {
+                source 10.2.2.2;
+                destination 10.4.4.4;
+            }
+            family inet {
+                address 172.16.24.2/24;
+            }
+        }
+    }
+    lo0 {
+        unit 0 {
+            family inet {
+                address 10.2.2.2/32;
+            }
+        }
+    }
+}
+routing-instances {
+    BLUE {
+        protocols {
+            ospf {
+                area 0.0.0.1 {
+                    interface ge-0/0/0.0;
+                    interface gre.0;
+                }
+            }
+        }
+        interface ge-0/0/0.0;
+        interface gre.0;
+        instance-type vrf;
+        route-distinguisher 1:1;
+        vrf-target target:1:1;
+    }
+    GREEN {
+        routing-options {
+            static {
+                route 6.6.6.6/32 next-hop 192.168.23.1;
+            }
+        }
+        interface ge-0/0/2.0;
+        instance-type vrf;
+        route-distinguisher 1:2;
+        vrf-target target:1:2;
+    }
+}
+protocols {
+    ospf {
+        area 0.0.0.0 {
+            interface ge-0/0/1.0;
+            interface lo0.0;
+        }
+    }
+    bgp {
+        group L3VPN {
+            type internal;
+            local-address 10.2.2.2;
+            family inet-vpn {
+                unicast;
+            }
+            neighbor 10.4.4.4;
+        }
+    }
+    ldp {
+        interface ge-0/0/1.0;
+    }
+}
+routing-options {
+    router-id 10.2.2.2;
+    autonomous-system 100;
+}
